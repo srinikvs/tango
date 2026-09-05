@@ -20,7 +20,7 @@ import {
   unlockAudio,
 } from "./audio";
 import { puzzleForDaily, puzzleForPractice } from "./generate";
-import { MoonToken, PlayaddaMark, SunToken } from "./icons";
+import { MoonToken, SunToken } from "./icons";
 import {
   cycleBackward,
   cycleForward,
@@ -357,11 +357,8 @@ export function TangoGame() {
     <div className="shell" onPointerDown={() => unlockAudio()}>
       <header className="topbar">
         <div className="brand">
-          <PlayaddaMark className="brand-mark" />
-          <div>
-            <p className="eyebrow">Playadda</p>
-            <h1>Tango</h1>
-          </div>
+          <p className="eyebrow">Playadda</p>
+          <h1>Tango</h1>
         </div>
         <div className="top-actions">
           <button
@@ -495,7 +492,7 @@ export function TangoGame() {
         />
       ) : null}
 
-      <p className="version">v1.0.0</p>
+      <p className="version">v1.0.1</p>
     </div>
   );
 }
