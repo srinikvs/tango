@@ -89,6 +89,7 @@ export function TangoGame() {
   const [session, setSession] = useState<Session>(() => startSession("daily", today, "medium"));
   const [howTo, setHowTo] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showWinReset, setShowWinReset] = useState(false);
   const tick = useRef<number>(0);
   const restored = useRef(false);
 
@@ -171,6 +172,15 @@ export function TangoGame() {
     tick.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(tick.current);
   }, [session?.running, session?.won]);
+
+  useEffect(() => {
+    if (!session.won) {
+      setShowWinReset(false);
+      return;
+    }
+    const wait = window.setTimeout(() => setShowWinReset(true), 3000);
+    return () => window.clearTimeout(wait);
+  }, [session.won]);
 
   const errors = useMemo(
     () => (session ? violationSet(findViolations(session.grid, session.puzzle.constraints)) : new Set<number>()),
@@ -268,13 +278,15 @@ export function TangoGame() {
         ...s,
         grid: s.puzzle.givens.slice(),
         history: [],
-        elapsedMs: s.mode === "daily" ? s.elapsedMs : 0,
+        elapsedMs: s.mode === "daily" && !s.won ? s.elapsedMs : 0,
         running: false,
         won: false,
+        usedHint: s.won ? false : s.usedHint,
         hintText: null,
       };
     });
     setConfirmReset(false);
+    setShowWinReset(false);
   }, []);
 
   const playDaily = useCallback(
@@ -302,7 +314,7 @@ export function TangoGame() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!session || howTo) return;
+      if (!session || howTo || session.won) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.code === "KeyZ" && (e.metaKey || e.ctrlKey)) {
@@ -474,12 +486,10 @@ export function TangoGame() {
       </dl>
 
       {session.won ? (
-        <WinCard
+        <WinScreen
           time={formatTime(session.elapsedMs)}
-          usedHint={session.usedHint}
-          mode={session.mode}
-          onPractice={() => playPractice(save.practiceDifficulty)}
-          onDaily={() => playDaily(today)}
+          showReset={showWinReset}
+          onReset={resetBoard}
         />
       ) : null}
 
@@ -492,42 +502,29 @@ export function TangoGame() {
         />
       ) : null}
 
-      <p className="version">v1.0.1</p>
+      <p className="version">v1.0.2</p>
     </div>
   );
 }
 
-function WinCard({
+function WinScreen({
   time,
-  usedHint,
-  mode,
-  onPractice,
-  onDaily,
+  showReset,
+  onReset,
 }: {
   time: string;
-  usedHint: boolean;
-  mode: Mode;
-  onPractice: () => void;
-  onDaily: () => void;
+  showReset: boolean;
+  onReset: () => void;
 }) {
   return (
-    <div className="win" role="status">
-      <p className="win-kicker">Harmonized</p>
-      <p className="win-time">{time}</p>
-      <p className="win-note">{usedHint ? "Solved with a hint." : "Clean board — no hints."}</p>
-      <div className="win-actions">
-        {mode === "practice" ? (
-          <button type="button" className="btn-primary" onClick={onPractice}>
-            Another board
-          </button>
-        ) : (
-          <button type="button" className="btn-primary" onClick={onPractice}>
-            Practice round
-          </button>
-        )}
-        {mode === "practice" ? (
-          <button type="button" className="btn-ghost" onClick={onDaily}>
-            Back to daily
+    <div className="win-screen" role="dialog" aria-modal="true" aria-labelledby="win-time">
+      <div className="win-screen-stack">
+        <p id="win-time" className="win-screen-time">
+          {time}
+        </p>
+        {showReset ? (
+          <button type="button" className="win-reset" onClick={onReset}>
+            Reset
           </button>
         ) : null}
       </div>
