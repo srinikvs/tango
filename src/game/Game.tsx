@@ -20,7 +20,7 @@ import {
   unlockAudio,
 } from "./audio";
 import { puzzleForDaily, puzzleForPractice } from "./generate";
-import { MoonToken, PlayaddaMark, SunToken } from "./icons";
+import { MoonToken, SunToken } from "./icons";
 import {
   cycleBackward,
   cycleForward,
@@ -33,7 +33,7 @@ import {
   violationSet,
 } from "./logic";
 import { hashString, puzzleNumber, utcDateKey } from "./rng";
-import { loadSave, recordDailyWin, writeSave, type SaveState } from "./save";
+import { loadSave, recordBestTime, recordDailyWin, writeSave, type SaveState } from "./save";
 import type { Cell, Difficulty, Mode, Puzzle } from "./types";
 
 type Session = {
@@ -70,6 +70,8 @@ function startSession(mode: Mode, dateKey: string, difficulty: Difficulty, resto
   };
 }
 
+const APP_VERSION = "v1.0.3";
+
 const emptySave = (): SaveState => ({
   version: 1,
   muted: false,
@@ -88,7 +90,9 @@ export function TangoGame() {
   const [save, setSave] = useState<SaveState>(emptySave);
   const [session, setSession] = useState<Session>(() => startSession("daily", today, "medium"));
   const [howTo, setHowTo] = useState(false);
+  const [view, setView] = useState<"start" | "play">("start");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showWinReset, setShowWinReset] = useState(false);
   const tick = useRef<number>(0);
   const restored = useRef(false);
 
@@ -105,10 +109,9 @@ export function TangoGame() {
         elapsedMs: stored.daily!.elapsedMs,
         won: stored.daily!.won,
         usedHint: stored.daily!.usedHint,
-        running: stored.daily!.started && !stored.daily!.won,
+        running: false,
       }));
     }
-    setHowTo(!stored.seenHowTo);
   }, [today]);
 
   useEffect(() => {
@@ -160,7 +163,7 @@ export function TangoGame() {
   }, []);
 
   useEffect(() => {
-    if (!session?.running || session.won) return;
+    if (view !== "play" || !session?.running || session.won) return;
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
@@ -170,7 +173,16 @@ export function TangoGame() {
     };
     tick.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(tick.current);
-  }, [session?.running, session?.won]);
+  }, [view, session?.running, session?.won]);
+
+  useEffect(() => {
+    if (!session.won) {
+      setShowWinReset(false);
+      return;
+    }
+    const wait = window.setTimeout(() => setShowWinReset(true), 3000);
+    return () => window.clearTimeout(wait);
+  }, [session.won]);
 
   const errors = useMemo(
     () => (session ? violationSet(findViolations(session.grid, session.puzzle.constraints)) : new Set<number>()),
@@ -198,9 +210,10 @@ export function TangoGame() {
         if (!won && violations.some((v) => v.cells.includes(i))) playError();
         if (won) {
           playWin();
-          if (mode === "daily") {
-            setSave((prev) => {
-              const next = recordDailyWin(prev, dateKey, elapsedMs, usedHint);
+          setSave((prev) => {
+            let next = recordBestTime(prev, elapsedMs);
+            if (mode === "daily") {
+              next = recordDailyWin(next, dateKey, elapsedMs, usedHint);
               next.daily = {
                 dateKey,
                 grid,
@@ -209,9 +222,9 @@ export function TangoGame() {
                 usedHint,
                 started: true,
               };
-              return next;
-            });
-          }
+            }
+            return next;
+          });
         }
       });
       return {
@@ -261,6 +274,17 @@ export function TangoGame() {
     });
   }, [apply]);
 
+  const beginPlay = useCallback(() => {
+    setSave((s) => ({ ...s, seenHowTo: true }));
+    setSession((s) => {
+      if (!s || s.won) return s;
+      const started = s.grid.some((c, i) => c !== s.puzzle.givens[i]);
+      return { ...s, running: started };
+    });
+    setView("play");
+    setHowTo(false);
+  }, []);
+
   const resetBoard = useCallback(() => {
     setSession((s) => {
       if (!s) return s;
@@ -268,13 +292,15 @@ export function TangoGame() {
         ...s,
         grid: s.puzzle.givens.slice(),
         history: [],
-        elapsedMs: s.mode === "daily" ? s.elapsedMs : 0,
+        elapsedMs: s.mode === "daily" && !s.won ? s.elapsedMs : 0,
         running: false,
         won: false,
+        usedHint: s.won ? false : s.usedHint,
         hintText: null,
       };
     });
     setConfirmReset(false);
+    setShowWinReset(false);
   }, []);
 
   const playDaily = useCallback(
@@ -302,7 +328,7 @@ export function TangoGame() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!session || howTo) return;
+      if (!session || howTo || session.won || view !== "play") return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.code === "KeyZ" && (e.metaKey || e.ctrlKey)) {
@@ -346,22 +372,35 @@ export function TangoGame() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session, howTo, cycle, apply, undo, hint]);
+  }, [apply, cycle, hint, howTo, session, undo, view]);
 
   const title =
     session.mode === "practice"
       ? `Practice · ${session.puzzle.difficulty}`
       : `Daily · ${puzzleNumber(session.dateKey)}`;
 
+  if (view === "start") {
+    return (
+      <StartScreen
+        bestTimeMs={save.bestTimeMs}
+        onStart={beginPlay}
+        onToggleMute={() => {
+          const next = !save.muted;
+          setSave((s) => ({ ...s, muted: next }));
+          setMuted(next);
+          if (!next) unlockAudio();
+        }}
+        muted={save.muted}
+      />
+    );
+  }
+
   return (
     <div className="shell" onPointerDown={() => unlockAudio()}>
       <header className="topbar">
         <div className="brand">
-          <PlayaddaMark className="brand-mark" />
-          <div>
-            <p className="eyebrow">Playadda</p>
-            <h1>Tango</h1>
-          </div>
+          <p className="eyebrow">Playadda</p>
+          <h1>Tango</h1>
         </div>
         <div className="top-actions">
           <button
@@ -471,18 +510,16 @@ export function TangoGame() {
           <dd>{save.gamesWon}</dd>
         </div>
         <div>
-          <dt>Best</dt>
+          <dt>Best time</dt>
           <dd>{save.bestTimeMs === null ? "—" : formatTime(save.bestTimeMs)}</dd>
         </div>
       </dl>
 
       {session.won ? (
-        <WinCard
+        <WinScreen
           time={formatTime(session.elapsedMs)}
-          usedHint={session.usedHint}
-          mode={session.mode}
-          onPractice={() => playPractice(save.practiceDifficulty)}
-          onDaily={() => playDaily(today)}
+          showReset={showWinReset}
+          onReset={resetBoard}
         />
       ) : null}
 
@@ -495,46 +532,112 @@ export function TangoGame() {
         />
       ) : null}
 
-      <p className="version">v1.0.0</p>
+      <p className="version">{APP_VERSION}</p>
     </div>
   );
 }
 
-function WinCard({
+function WinScreen({
   time,
-  usedHint,
-  mode,
-  onPractice,
-  onDaily,
+  showReset,
+  onReset,
 }: {
   time: string;
-  usedHint: boolean;
-  mode: Mode;
-  onPractice: () => void;
-  onDaily: () => void;
+  showReset: boolean;
+  onReset: () => void;
 }) {
   return (
-    <div className="win" role="status">
-      <p className="win-kicker">Harmonized</p>
-      <p className="win-time">{time}</p>
-      <p className="win-note">{usedHint ? "Solved with a hint." : "Clean board — no hints."}</p>
-      <div className="win-actions">
-        {mode === "practice" ? (
-          <button type="button" className="btn-primary" onClick={onPractice}>
-            Another board
-          </button>
-        ) : (
-          <button type="button" className="btn-primary" onClick={onPractice}>
-            Practice round
-          </button>
-        )}
-        {mode === "practice" ? (
-          <button type="button" className="btn-ghost" onClick={onDaily}>
-            Back to daily
+    <div className="win-screen" role="dialog" aria-modal="true" aria-labelledby="win-time">
+      <div className="win-screen-stack">
+        <p id="win-time" className="win-screen-time">
+          {time}
+        </p>
+        {showReset ? (
+          <button type="button" className="win-reset" onClick={onReset}>
+            Reset
           </button>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function StartScreen({
+  bestTimeMs,
+  onStart,
+  onToggleMute,
+  muted,
+}: {
+  bestTimeMs: number | null;
+  onStart: () => void;
+  onToggleMute: () => void;
+  muted: boolean;
+}) {
+  return (
+    <div className="start-screen" onPointerDown={() => unlockAudio()}>
+      <header className="start-top">
+        <div className="brand">
+          <p className="eyebrow">Playadda</p>
+          <h1>Tango</h1>
+        </div>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={muted ? "Unmute" : "Mute"}
+          onClick={onToggleMute}
+        >
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+      </header>
+      <p className="start-tag">Harmonize the grid</p>
+      <div className="start-card">
+        <p className="eyebrow">How to play</p>
+        <HowToRules />
+        <button type="button" className="btn-primary start-go" onClick={onStart}>
+          Start
+        </button>
+      </div>
+      <p className="start-best">
+        Best time {bestTimeMs === null ? "—" : formatTime(bestTimeMs)}
+      </p>
+      <p className="version version-on">{APP_VERSION}</p>
+    </div>
+  );
+}
+
+function HowToRules() {
+  return (
+    <>
+      <h2 id="how-title">Fill every cell with a sun or a moon.</h2>
+      <ol className="rules">
+        <li>
+          <span>Each row and column holds three suns and three moons.</span>
+        </li>
+        <li>
+          <span>Never place three of the same token in a line.</span>
+        </li>
+        <li>
+          <span>
+            <b>=</b> means the two cells match. <b>×</b> means they differ.
+          </span>
+        </li>
+        <li>
+          <span>Tap to cycle empty → sun → moon. Hold or right-click to cycle back.</span>
+        </li>
+      </ol>
+      <div className="demo-row" aria-hidden="true">
+        <Mini token={0} />
+        <Mini token={0} />
+        <Mini token={1} good />
+        <span className="demo-cap">A pair forces the opposite.</span>
+      </div>
+      <div className="demo-row" aria-hidden="true">
+        <Mini token={0} />
+        <span className="demo-eq">=</span>
+        <Mini token={0} good />
+        <span className="demo-cap">Equals stay in step.</span>
+      </div>
+    </>
   );
 }
 
@@ -549,37 +652,9 @@ function HowTo({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <p className="eyebrow">How to play</p>
-        <h2 id="how-title">Fill every cell with a sun or a moon.</h2>
-        <ol className="rules">
-          <li>
-            <span>Each row and column holds three suns and three moons.</span>
-          </li>
-          <li>
-            <span>Never place three of the same token in a line.</span>
-          </li>
-          <li>
-            <span>
-              <b>=</b> means the two cells match. <b>×</b> means they differ.
-            </span>
-          </li>
-          <li>
-            <span>Tap to cycle empty → sun → moon. Hold or right-click to cycle back.</span>
-          </li>
-        </ol>
-        <div className="demo-row" aria-hidden="true">
-          <Mini token={0} />
-          <Mini token={0} />
-          <Mini token={1} good />
-          <span className="demo-cap">A pair forces the opposite.</span>
-        </div>
-        <div className="demo-row" aria-hidden="true">
-          <Mini token={0} />
-          <span className="demo-eq">=</span>
-          <Mini token={0} good />
-          <span className="demo-cap">Equals stay in step.</span>
-        </div>
+        <HowToRules />
         <button type="button" className="btn-primary modal-go" onClick={onClose}>
-          Play
+          Got it
         </button>
       </div>
     </div>
