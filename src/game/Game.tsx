@@ -33,7 +33,7 @@ import {
   violationSet,
 } from "./logic";
 import { hashString, puzzleNumber, utcDateKey } from "./rng";
-import { loadSave, recordDailyWin, writeSave, type SaveState } from "./save";
+import { loadSave, recordBestTime, recordDailyWin, writeSave, type SaveState } from "./save";
 import type { Cell, Difficulty, Mode, Puzzle } from "./types";
 
 type Session = {
@@ -70,6 +70,8 @@ function startSession(mode: Mode, dateKey: string, difficulty: Difficulty, resto
   };
 }
 
+const APP_VERSION = "v1.0.3";
+
 const emptySave = (): SaveState => ({
   version: 1,
   muted: false,
@@ -88,6 +90,7 @@ export function TangoGame() {
   const [save, setSave] = useState<SaveState>(emptySave);
   const [session, setSession] = useState<Session>(() => startSession("daily", today, "medium"));
   const [howTo, setHowTo] = useState(false);
+  const [view, setView] = useState<"start" | "play">("start");
   const [confirmReset, setConfirmReset] = useState(false);
   const [showWinReset, setShowWinReset] = useState(false);
   const tick = useRef<number>(0);
@@ -106,10 +109,9 @@ export function TangoGame() {
         elapsedMs: stored.daily!.elapsedMs,
         won: stored.daily!.won,
         usedHint: stored.daily!.usedHint,
-        running: stored.daily!.started && !stored.daily!.won,
+        running: false,
       }));
     }
-    setHowTo(!stored.seenHowTo);
   }, [today]);
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export function TangoGame() {
   }, []);
 
   useEffect(() => {
-    if (!session?.running || session.won) return;
+    if (view !== "play" || !session?.running || session.won) return;
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
@@ -171,7 +173,7 @@ export function TangoGame() {
     };
     tick.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(tick.current);
-  }, [session?.running, session?.won]);
+  }, [view, session?.running, session?.won]);
 
   useEffect(() => {
     if (!session.won) {
@@ -208,9 +210,10 @@ export function TangoGame() {
         if (!won && violations.some((v) => v.cells.includes(i))) playError();
         if (won) {
           playWin();
-          if (mode === "daily") {
-            setSave((prev) => {
-              const next = recordDailyWin(prev, dateKey, elapsedMs, usedHint);
+          setSave((prev) => {
+            let next = recordBestTime(prev, elapsedMs);
+            if (mode === "daily") {
+              next = recordDailyWin(next, dateKey, elapsedMs, usedHint);
               next.daily = {
                 dateKey,
                 grid,
@@ -219,9 +222,9 @@ export function TangoGame() {
                 usedHint,
                 started: true,
               };
-              return next;
-            });
-          }
+            }
+            return next;
+          });
         }
       });
       return {
@@ -271,6 +274,17 @@ export function TangoGame() {
     });
   }, [apply]);
 
+  const beginPlay = useCallback(() => {
+    setSave((s) => ({ ...s, seenHowTo: true }));
+    setSession((s) => {
+      if (!s || s.won) return s;
+      const started = s.grid.some((c, i) => c !== s.puzzle.givens[i]);
+      return { ...s, running: started };
+    });
+    setView("play");
+    setHowTo(false);
+  }, []);
+
   const resetBoard = useCallback(() => {
     setSession((s) => {
       if (!s) return s;
@@ -314,7 +328,7 @@ export function TangoGame() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!session || howTo || session.won) return;
+      if (!session || howTo || session.won || view !== "play") return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.code === "KeyZ" && (e.metaKey || e.ctrlKey)) {
@@ -358,12 +372,28 @@ export function TangoGame() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session, howTo, cycle, apply, undo, hint]);
+  }, [apply, cycle, hint, howTo, session, undo, view]);
 
   const title =
     session.mode === "practice"
       ? `Practice · ${session.puzzle.difficulty}`
       : `Daily · ${puzzleNumber(session.dateKey)}`;
+
+  if (view === "start") {
+    return (
+      <StartScreen
+        bestTimeMs={save.bestTimeMs}
+        onStart={beginPlay}
+        onToggleMute={() => {
+          const next = !save.muted;
+          setSave((s) => ({ ...s, muted: next }));
+          setMuted(next);
+          if (!next) unlockAudio();
+        }}
+        muted={save.muted}
+      />
+    );
+  }
 
   return (
     <div className="shell" onPointerDown={() => unlockAudio()}>
@@ -480,7 +510,7 @@ export function TangoGame() {
           <dd>{save.gamesWon}</dd>
         </div>
         <div>
-          <dt>Best</dt>
+          <dt>Best time</dt>
           <dd>{save.bestTimeMs === null ? "—" : formatTime(save.bestTimeMs)}</dd>
         </div>
       </dl>
@@ -502,7 +532,7 @@ export function TangoGame() {
         />
       ) : null}
 
-      <p className="version">v1.0.2</p>
+      <p className="version">{APP_VERSION}</p>
     </div>
   );
 }
@@ -532,6 +562,85 @@ function WinScreen({
   );
 }
 
+function StartScreen({
+  bestTimeMs,
+  onStart,
+  onToggleMute,
+  muted,
+}: {
+  bestTimeMs: number | null;
+  onStart: () => void;
+  onToggleMute: () => void;
+  muted: boolean;
+}) {
+  return (
+    <div className="start-screen" onPointerDown={() => unlockAudio()}>
+      <header className="start-top">
+        <div className="brand">
+          <p className="eyebrow">Playadda</p>
+          <h1>Tango</h1>
+        </div>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={muted ? "Unmute" : "Mute"}
+          onClick={onToggleMute}
+        >
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+      </header>
+      <p className="start-tag">Harmonize the grid</p>
+      <div className="start-card">
+        <p className="eyebrow">How to play</p>
+        <HowToRules />
+        <button type="button" className="btn-primary start-go" onClick={onStart}>
+          Start
+        </button>
+      </div>
+      <p className="start-best">
+        Best time {bestTimeMs === null ? "—" : formatTime(bestTimeMs)}
+      </p>
+      <p className="version version-on">{APP_VERSION}</p>
+    </div>
+  );
+}
+
+function HowToRules() {
+  return (
+    <>
+      <h2 id="how-title">Fill every cell with a sun or a moon.</h2>
+      <ol className="rules">
+        <li>
+          <span>Each row and column holds three suns and three moons.</span>
+        </li>
+        <li>
+          <span>Never place three of the same token in a line.</span>
+        </li>
+        <li>
+          <span>
+            <b>=</b> means the two cells match. <b>×</b> means they differ.
+          </span>
+        </li>
+        <li>
+          <span>Tap to cycle empty → sun → moon. Hold or right-click to cycle back.</span>
+        </li>
+      </ol>
+      <div className="demo-row" aria-hidden="true">
+        <Mini token={0} />
+        <Mini token={0} />
+        <Mini token={1} good />
+        <span className="demo-cap">A pair forces the opposite.</span>
+      </div>
+      <div className="demo-row" aria-hidden="true">
+        <Mini token={0} />
+        <span className="demo-eq">=</span>
+        <Mini token={0} good />
+        <span className="demo-cap">Equals stay in step.</span>
+      </div>
+    </>
+  );
+}
+
 function HowTo({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-root" role="presentation" onClick={onClose}>
@@ -543,37 +652,9 @@ function HowTo({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <p className="eyebrow">How to play</p>
-        <h2 id="how-title">Fill every cell with a sun or a moon.</h2>
-        <ol className="rules">
-          <li>
-            <span>Each row and column holds three suns and three moons.</span>
-          </li>
-          <li>
-            <span>Never place three of the same token in a line.</span>
-          </li>
-          <li>
-            <span>
-              <b>=</b> means the two cells match. <b>×</b> means they differ.
-            </span>
-          </li>
-          <li>
-            <span>Tap to cycle empty → sun → moon. Hold or right-click to cycle back.</span>
-          </li>
-        </ol>
-        <div className="demo-row" aria-hidden="true">
-          <Mini token={0} />
-          <Mini token={0} />
-          <Mini token={1} good />
-          <span className="demo-cap">A pair forces the opposite.</span>
-        </div>
-        <div className="demo-row" aria-hidden="true">
-          <Mini token={0} />
-          <span className="demo-eq">=</span>
-          <Mini token={0} good />
-          <span className="demo-cap">Equals stay in step.</span>
-        </div>
+        <HowToRules />
         <button type="button" className="btn-primary modal-go" onClick={onClose}>
-          Play
+          Got it
         </button>
       </div>
     </div>

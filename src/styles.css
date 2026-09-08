@@ -676,6 +676,7 @@ h1 {
   .win-screen,
   .win-reset,
   .modal,
+  .start-card,
   .cell-won {
     animation: none;
     transition: none;
@@ -685,9 +686,92 @@ h1 {
 .version {
   margin: 8px 0 0;
   text-align: center;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--color-haze);
+  color: var(--color-mist);
   font-weight: 600;
+}
+
+.version-on {
+  color: var(--color-cream);
+}
+
+.start-screen {
+  min-height: 100dvh;
+  max-width: 440px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 2.5rem));
+  padding-bottom: max(2.75rem, calc(env(safe-area-inset-bottom, 0px) + 1.75rem));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.start-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.start-top .brand {
+  grid-column: 2;
+}
+
+.start-top .icon-btn {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.start-tag {
+  margin: 0;
+  text-align: center;
+  color: var(--color-mist);
+  font-size: 0.9375rem;
+}
+
+.start-card {
+  background: var(--color-paper);
+  color: var(--color-paper-ink);
+  border-radius: var(--radius-xl);
+  padding: 22px 20px 20px;
+}
+
+.start-card .eyebrow {
+  color: var(--color-haze);
+}
+
+.start-card h2 {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  line-height: 1.2;
+  color: var(--color-paper-ink);
+  text-align: left;
+  font-style: normal;
+}
+
+.start-go {
+  width: 100%;
+  margin-top: 20px;
+  height: 48px;
+  background: var(--color-desk);
+  color: var(--color-cream);
+}
+
+.start-best {
+  margin: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-cream);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.start-card .demo-cap {
+  color: var(--color-haze);
 }

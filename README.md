@@ -1,4 +1,4 @@
-# Tango v1.0.2
+# Tango v1.0.3
 
 Daily 6×6 sun-and-moon logic puzzle from Playadda. Fill every cell with a sun or a moon. Each row and column holds three of each. Never place three identical tokens in a line. `=` means match; `×` means differ.
 

@@ -62,21 +62,25 @@ export function writeSave(state: SaveState) {
   }
 }
 
-export function recordDailyWin(save: SaveState, dateKey: string, timeMs: number, usedHint: boolean): SaveState {
+export function recordBestTime(save: SaveState, timeMs: number): SaveState {
+  const t = Math.max(0, Math.round(timeMs));
+  const bestTimeMs = save.bestTimeMs === null ? t : Math.min(save.bestTimeMs, t);
+  return { ...save, bestTimeMs };
+}
+
+export function recordDailyWin(save: SaveState, dateKey: string, timeMs: number, _usedHint: boolean): SaveState {
+  const withBest = recordBestTime(save, timeMs);
   const yesterday = adjacentDate(dateKey, -1);
-  const continued = save.lastDailyWon === yesterday;
-  const sameDay = save.lastDailyWon === dateKey;
-  const streak = sameDay ? save.streak : continued ? save.streak + 1 : 1;
-  const bestStreak = Math.max(save.bestStreak, streak);
-  const bestTimeMs =
-    usedHint ? save.bestTimeMs : save.bestTimeMs === null ? timeMs : Math.min(save.bestTimeMs, timeMs);
+  const continued = withBest.lastDailyWon === yesterday;
+  const sameDay = withBest.lastDailyWon === dateKey;
+  const streak = sameDay ? withBest.streak : continued ? withBest.streak + 1 : 1;
+  const bestStreak = Math.max(withBest.bestStreak, streak);
   return {
-    ...save,
+    ...withBest,
     streak,
     bestStreak,
     lastDailyWon: dateKey,
-    gamesWon: sameDay ? save.gamesWon : save.gamesWon + 1,
-    bestTimeMs,
+    gamesWon: sameDay ? withBest.gamesWon : withBest.gamesWon + 1,
   };
 }
 
