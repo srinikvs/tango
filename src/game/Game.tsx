@@ -48,6 +48,7 @@ type Session = {
   won: boolean;
   usedHint: boolean;
   hintText: string | null;
+  qaForced: boolean;
 };
 
 function startSession(mode: Mode, dateKey: string, difficulty: Difficulty, restore?: Cell[]): Session {
@@ -67,6 +68,7 @@ function startSession(mode: Mode, dateKey: string, difficulty: Difficulty, resto
     won: false,
     usedHint: false,
     hintText: null,
+    qaForced: false,
   };
 }
 
@@ -110,6 +112,7 @@ export function TangoGame() {
         won: stored.daily!.won,
         usedHint: stored.daily!.usedHint,
         running: false,
+        qaForced: false,
       }));
     }
   }, [today]);
@@ -119,7 +122,7 @@ export function TangoGame() {
   }, [save]);
 
   useEffect(() => {
-    if (!session || session.mode !== "daily") return;
+    if (!session || session.mode !== "daily" || session.qaForced) return;
     const handle = window.setTimeout(() => {
       setSave((prev) => ({
         ...prev,
@@ -134,12 +137,12 @@ export function TangoGame() {
       }));
     }, 400);
     return () => window.clearTimeout(handle);
-  }, [session?.grid, session?.won, session?.usedHint, session?.mode, session?.dateKey]);
+  }, [session?.grid, session?.won, session?.usedHint, session?.mode, session?.dateKey, session?.qaForced]);
 
   useEffect(() => {
     const onHide = () => {
       setSession((s) => {
-        if (!s || s.mode !== "daily") return s;
+        if (!s || s.mode !== "daily" || s.qaForced) return s;
         setSave((prev) => ({
           ...prev,
           daily: {
@@ -297,11 +300,58 @@ export function TangoGame() {
         won: false,
         usedHint: s.won ? false : s.usedHint,
         hintText: null,
+        qaForced: false,
       };
     });
     setConfirmReset(false);
     setShowWinReset(false);
   }, []);
+
+  const forceWin = useCallback(() => {
+    setHowTo(false);
+    setView("play");
+    setSession((s) => {
+      if (!s) return s;
+      if (s.won && s.qaForced) return s;
+      const grid = s.puzzle.solution.slice() as Cell[];
+      queueMicrotask(() => playWin());
+      return {
+        ...s,
+        grid,
+        running: false,
+        won: true,
+        qaForced: true,
+        hintText: null,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    const w = window as Window & { __tangoForceWin?: () => void };
+    w.__tangoForceWin = forceWin;
+    return () => {
+      if (w.__tangoForceWin === forceWin) delete w.__tangoForceWin;
+    };
+  }, [forceWin]);
+
+  useEffect(() => {
+    const onQaKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey && e.shiftKey && e.code === "KeyW")) return;
+      e.preventDefault();
+      forceWin();
+    };
+    window.addEventListener("keydown", onQaKey);
+    return () => window.removeEventListener("keydown", onQaKey);
+  }, [forceWin]);
+
+  const qaAuto = useRef(false);
+  useEffect(() => {
+    if (qaAuto.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("qa") !== "win") return;
+    qaAuto.current = true;
+    forceWin();
+  }, [forceWin]);
 
   const playDaily = useCallback(
     (key: string) => {
