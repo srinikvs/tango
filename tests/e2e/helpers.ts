@@ -61,6 +61,6 @@ export async function readSave(page: Page): Promise<SaveState | null> {
   }, SAVE_KEY);
 }
 
-export async function firstEmptyCell(page: Page) {
+export function firstEmptyCell(page: Page) {
   return page.locator('[data-testid^="cell-"][data-token="empty"]:not([disabled])').first();
 }

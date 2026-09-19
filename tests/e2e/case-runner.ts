@@ -142,9 +142,11 @@ async function applyExpect(page: Page, ctx: Ctx, exp: Expectation, caseId: strin
     }
     case "placedSunAfterTap": {
       const cell = firstEmptyCell(page);
-      await expect(cell, tag).toHaveCount(1);
+      await expect(cell, tag).toBeVisible();
+      const id = await cell.getAttribute("data-testid");
+      expect(id, tag).toBeTruthy();
       await cell.click();
-      await expect(cell, tag).toHaveAttribute("data-token", "sun");
+      await expect(page.getByTestId(id!), tag).toHaveAttribute("data-token", "sun");
       ctx.tappedToken = "sun";
       return;
     }
