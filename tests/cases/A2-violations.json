@@ -1,0 +1,42 @@
+{
+  "id": "A2",
+  "layer": "unit",
+  "title": "Violations: three-in-a-row, line overflow, broken equals/cross",
+  "gate": "optional",
+  "steps": [
+    { "op": "emptyGrid" },
+    {
+      "op": "setCells",
+      "cells": [
+        { "i": 0, "v": 0 },
+        { "i": 1, "v": 0 },
+        { "i": 2, "v": 0 }
+      ]
+    },
+    { "op": "expect", "assert": "violationKinds", "kinds": ["triple"] },
+    { "op": "emptyGrid" },
+    {
+      "op": "setCells",
+      "cells": [
+        { "i": 0, "v": 0 },
+        { "i": 1, "v": 0 },
+        { "i": 2, "v": 0 },
+        { "i": 3, "v": 0 }
+      ]
+    },
+    { "op": "expect", "assert": "violationKinds", "kinds": ["triple", "balance"] },
+    { "op": "emptyGrid" },
+    {
+      "op": "setConstraints",
+      "constraints": [{ "a": 0, "b": 1, "kind": "eq" }]
+    },
+    {
+      "op": "setCells",
+      "cells": [
+        { "i": 0, "v": 0 },
+        { "i": 1, "v": 1 }
+      ]
+    }
+  ],
+  "expect": [{ "assert": "violationKinds", "kinds": ["constraint"] }]
+}

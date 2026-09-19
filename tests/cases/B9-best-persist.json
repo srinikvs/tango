@@ -1,0 +1,18 @@
+{
+  "id": "B9",
+  "layer": "e2e",
+  "title": "Best time shown from localStorage and survives reload",
+  "gate": "block",
+  "steps": [
+    { "op": "openFresh", "bestTimeMs": 45000 },
+    { "op": "expect", "assert": "bestValue", "value": "0:45" },
+    { "op": "expect", "assert": "text", "testId": "best", "match": "Best time" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" },
+    { "op": "expect", "assert": "bestValue", "value": "0:45" }
+  ],
+  "expect": [
+    { "assert": "storageBestTime", "value": 45000 },
+    { "assert": "bestSurvivesReload", "value": "0:45" }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "A5",
+  "layer": "unit",
+  "title": "Best time writes localStorage; reload restores; daily streak continues",
+  "gate": "optional",
+  "steps": [
+    { "op": "resetStorage" },
+    { "op": "writeBest", "value": 120000 },
+    { "op": "recordBest", "timeMs": 45000 },
+    { "op": "expect", "assert": "bestTime", "value": 45000 },
+    { "op": "expect", "assert": "storageBestTime", "value": 45000 },
+    { "op": "recordBest", "timeMs": 90000 },
+    { "op": "expect", "assert": "bestTime", "value": 45000 },
+    { "op": "reloadSave" },
+    { "op": "expect", "assert": "bestTime", "value": 45000 },
+    { "op": "recordDailyWin", "dateKey": "2026-09-18", "timeMs": 60000 },
+    { "op": "recordDailyWin", "dateKey": "2026-09-19", "timeMs": 50000 }
+  ],
+  "expect": [
+    { "assert": "streak", "value": 2 },
+    { "assert": "gamesWon", "value": 2 },
+    { "assert": "bestTime", "value": 45000 },
+    { "assert": "storageBestTime", "value": 45000 }
+  ]
+}

@@ -31,6 +31,7 @@ export function Board({ puzzle, grid, selected, errors, won, onCycle, onSelect }
       aria-label="Tango puzzle"
       aria-rowcount={SIZE}
       aria-colcount={SIZE}
+      data-testid="board"
     >
       {Array.from({ length: SIZE }, (_, r) =>
         Array.from({ length: SIZE }, (_, c) => {
@@ -48,6 +49,8 @@ export function Board({ puzzle, grid, selected, errors, won, onCycle, onSelect }
               aria-colindex={c + 1}
               aria-label={cellLabel(r, c, v, given)}
               disabled={given || won}
+              data-testid={`cell-${i}`}
+              data-token={v === 0 ? "sun" : v === 1 ? "moon" : "empty"}
               className={cn(
                 "cell",
                 v === 0 && "cell-sun",

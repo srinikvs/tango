@@ -1,0 +1,12 @@
+{
+  "id": "A3",
+  "layer": "unit",
+  "title": "Daily solution is solved; givens alone are not",
+  "gate": "optional",
+  "steps": [
+    { "op": "loadDailySolution", "dateKey": "2026-09-19" },
+    { "op": "expect", "assert": "solved", "value": true },
+    { "op": "loadDailyGivens", "dateKey": "2026-09-19" }
+  ],
+  "expect": [{ "assert": "solved", "value": false }]
+}
