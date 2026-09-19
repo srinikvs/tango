@@ -1,0 +1,18 @@
+{
+  "id": "B7",
+  "layer": "e2e",
+  "title": "First load: how-to-play BEFORE play; Start on the same screen",
+  "gate": "block",
+  "steps": [{ "op": "openFresh" }],
+  "expect": [
+    { "assert": "visible", "testId": "overlay" },
+    { "assert": "visible", "testId": "howto" },
+    { "assert": "count", "testId": "howto", "selector": "li", "value": 4 },
+    { "assert": "visible", "testId": "start" },
+    { "assert": "enabled", "testId": "start" },
+    { "assert": "visible", "testId": "start-panel" },
+    { "assert": "count", "testId": "play", "value": 0 },
+    { "assert": "heading", "name": "Fill every cell with a sun or a moon." },
+    { "assert": "below", "above": "howto", "below": "start" }
+  ]
+}

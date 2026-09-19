@@ -1,0 +1,15 @@
+{
+  "id": "B10",
+  "layer": "e2e",
+  "title": "After Start, one tap on an empty cell places a sun",
+  "gate": "block",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" }
+  ],
+  "expect": [
+    { "assert": "visible", "testId": "board" },
+    { "assert": "placedSunAfterTap" }
+  ]
+}

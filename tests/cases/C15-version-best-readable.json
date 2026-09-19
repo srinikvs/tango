@@ -1,0 +1,14 @@
+{
+  "id": "C15",
+  "layer": "pixel",
+  "title": "Pixel: Version + Best readable on 412×915 portrait",
+  "gate": "block",
+  "steps": [{ "op": "openFresh" }],
+  "expect": [
+    { "assert": "versionReadable" },
+    { "assert": "bestReadable" },
+    { "assert": "inViewport", "testId": ["version", "best"] },
+    { "assert": "text", "testId": "version", "match": "v1\\.\\d+\\.\\d+" },
+    { "assert": "text", "testId": "best", "match": "Best time" }
+  ]
+}

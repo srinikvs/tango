@@ -1,0 +1,17 @@
+{
+  "id": "C16",
+  "layer": "pixel",
+  "title": "Pixel: board usable after Start; cells unclipped and tappable",
+  "gate": "block",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" }
+  ],
+  "expect": [
+    { "assert": "boardFullyVisible" },
+    { "assert": "cellsUsable", "minSize": 36 },
+    { "assert": "inViewport", "testId": ["board", "hud", "toolbar"] },
+    { "assert": "noVerticalClip", "testId": ["board", "hud", "toolbar"] }
+  ]
+}

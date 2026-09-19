@@ -1,0 +1,18 @@
+{
+  "id": "B11",
+  "layer": "e2e",
+  "title": "Hard refresh returns a usable How-to + Start screen",
+  "gate": "optional",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" },
+    { "op": "reload" }
+  ],
+  "expect": [
+    { "assert": "visible", "testId": "howto" },
+    { "assert": "visible", "testId": "start" },
+    { "assert": "enabled", "testId": "start" },
+    { "assert": "count", "testId": "play", "value": 0 }
+  ]
+}

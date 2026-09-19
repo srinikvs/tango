@@ -35,6 +35,7 @@ import {
 import { hashString, puzzleNumber, utcDateKey } from "./rng";
 import { loadSave, recordBestTime, recordDailyWin, writeSave, type SaveState } from "./save";
 import type { Cell, Difficulty, Mode, Puzzle } from "./types";
+import { VERSION_LABEL } from "../version";
 
 type Session = {
   mode: Mode;
@@ -69,8 +70,6 @@ function startSession(mode: Mode, dateKey: string, difficulty: Difficulty, resto
     hintText: null,
   };
 }
-
-const APP_VERSION = "v1.0.3";
 
 const emptySave = (): SaveState => ({
   version: 1,
@@ -396,8 +395,8 @@ export function TangoGame() {
   }
 
   return (
-    <div className="shell" onPointerDown={() => unlockAudio()}>
-      <header className="topbar">
+    <div className="shell" data-testid="play" onPointerDown={() => unlockAudio()}>
+      <header className="topbar" data-testid="hud">
         <div className="brand">
           <p className="eyebrow">Playadda</p>
           <h1>Tango</h1>
@@ -454,7 +453,7 @@ export function TangoGame() {
         {session.hintText ?? "Tap a cell to place a sun, again for a moon."}
       </p>
 
-      <div className="toolbar">
+      <div className="toolbar" data-testid="toolbar">
         <button type="button" className="tool" onClick={undo} disabled={session.won || session.history.length === 0}>
           <Undo2 size={16} />
           Undo
@@ -500,18 +499,18 @@ export function TangoGame() {
         ))}
       </div>
 
-      <dl className="stats">
+      <dl className="stats" data-testid="stats">
         <div>
           <dt>Streak</dt>
-          <dd>{save.streak}</dd>
+          <dd data-testid="streak-value">{save.streak}</dd>
         </div>
         <div>
           <dt>Solved</dt>
-          <dd>{save.gamesWon}</dd>
+          <dd data-testid="solved-value">{save.gamesWon}</dd>
         </div>
-        <div>
+        <div data-testid="best">
           <dt>Best time</dt>
-          <dd>{save.bestTimeMs === null ? "—" : formatTime(save.bestTimeMs)}</dd>
+          <dd data-testid="best-value">{save.bestTimeMs === null ? "—" : formatTime(save.bestTimeMs)}</dd>
         </div>
       </dl>
 
@@ -532,7 +531,9 @@ export function TangoGame() {
         />
       ) : null}
 
-      <p className="version">{APP_VERSION}</p>
+      <p className="version" data-testid="version">
+        {VERSION_LABEL}
+      </p>
     </div>
   );
 }
@@ -574,8 +575,8 @@ function StartScreen({
   muted: boolean;
 }) {
   return (
-    <div className="start-screen" onPointerDown={() => unlockAudio()}>
-      <header className="start-top">
+    <div className="start-screen" data-testid="overlay" onPointerDown={() => unlockAudio()}>
+      <header className="start-top" data-testid="hud">
         <div className="brand">
           <p className="eyebrow">Playadda</p>
           <h1>Tango</h1>
@@ -590,24 +591,27 @@ function StartScreen({
         </button>
       </header>
       <p className="start-tag">Harmonize the grid</p>
-      <div className="start-card">
+      <div className="start-card" data-testid="start-panel">
         <p className="eyebrow">How to play</p>
         <HowToRules />
-        <button type="button" className="btn-primary start-go" onClick={onStart}>
+        <button type="button" className="btn-primary start-go" data-testid="start" onClick={onStart}>
           Start
         </button>
       </div>
-      <p className="start-best">
-        Best time {bestTimeMs === null ? "—" : formatTime(bestTimeMs)}
+      <p className="start-best" data-testid="best">
+        Best time{" "}
+        <span data-testid="best-value">{bestTimeMs === null ? "—" : formatTime(bestTimeMs)}</span>
       </p>
-      <p className="version version-on">{APP_VERSION}</p>
+      <p className="version version-on" data-testid="version">
+        <span data-testid="start-version">{VERSION_LABEL}</span>
+      </p>
     </div>
   );
 }
 
 function HowToRules() {
   return (
-    <>
+    <div data-testid="howto">
       <h2 id="how-title">Fill every cell with a sun or a moon.</h2>
       <ol className="rules">
         <li>
@@ -637,7 +641,7 @@ function HowToRules() {
         <Mini token={0} good />
         <span className="demo-cap">Equals stay in step.</span>
       </div>
-    </>
+    </div>
   );
 }
 

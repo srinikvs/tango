@@ -1,0 +1,19 @@
+{
+  "id": "B-desktop-start",
+  "layer": "e2e",
+  "title": "Desktop smoke: How-to + Start begins a playable game",
+  "gate": "optional",
+  "viewport": "desktop",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "expect", "assert": "visible", "testId": "howto" },
+    { "op": "expect", "assert": "visible", "testId": "start" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" }
+  ],
+  "expect": [
+    { "assert": "visible", "testId": "board" },
+    { "assert": "visible", "testId": "version" },
+    { "assert": "visible", "testId": "hud" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "B8",
+  "layer": "e2e",
+  "title": "Version ID visible on start chrome and play HUD",
+  "gate": "block",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "expect", "assert": "visible", "testId": "version" },
+    { "op": "expect", "assert": "text", "testId": "version", "match": "v1\\.\\d+\\.\\d+" },
+    { "op": "expect", "assert": "visible", "testId": "start-version" },
+    { "op": "expect", "assert": "text", "testId": "start-version", "match": "v1\\.\\d+\\.\\d+" },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" }
+  ],
+  "expect": [
+    { "assert": "visible", "testId": "hud" },
+    { "assert": "visible", "testId": "version" },
+    { "assert": "text", "testId": "version", "match": "v1\\.\\d+\\.\\d+" }
+  ]
+}

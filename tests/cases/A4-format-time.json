@@ -1,0 +1,14 @@
+{
+  "id": "A4",
+  "layer": "unit",
+  "title": "formatTime is m:ss and floors milliseconds",
+  "gate": "optional",
+  "steps": [
+    { "op": "expect", "assert": "formatTime", "ms": 0, "value": "0:00" },
+    { "op": "expect", "assert": "formatTime", "ms": 45000, "value": "0:45" },
+    { "op": "expect", "assert": "formatTime", "ms": 59999, "value": "0:59" },
+    { "op": "expect", "assert": "formatTime", "ms": 60000, "value": "1:00" },
+    { "op": "expect", "assert": "formatTime", "ms": 125000, "value": "2:05" }
+  ],
+  "expect": [{ "assert": "formatTime", "ms": 3661000, "value": "61:01" }]
+}

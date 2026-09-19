@@ -1,0 +1,35 @@
+{
+  "id": "C14",
+  "layer": "pixel",
+  "title": "Pixel: start + play chrome visible; no vertical / home-bar clip",
+  "gate": "block",
+  "steps": [
+    { "op": "openFresh" },
+    { "op": "expect", "assert": "viewport", "width": 412, "height": 915 },
+    { "op": "expect", "assert": "visible", "testId": "howto" },
+    { "op": "expect", "assert": "visible", "testId": "start" },
+    { "op": "expect", "assert": "visible", "testId": "version" },
+    { "op": "expect", "assert": "visible", "testId": "best" },
+    {
+      "op": "expect",
+      "assert": "noVerticalClip",
+      "testId": ["howto", "start", "version", "best"]
+    },
+    { "op": "expect", "assert": "chromeAboveHomeBar", "testId": "start", "sab": 0 },
+    { "op": "emulateSafeArea", "sat": 24, "sab": 34 },
+    { "op": "click", "testId": "start" },
+    { "op": "waitPlay" }
+  ],
+  "expect": [
+    { "assert": "viewport", "width": 412, "height": 915 },
+    { "assert": "visible", "testId": "hud" },
+    { "assert": "visible", "testId": "board" },
+    { "assert": "visible", "testId": "toolbar" },
+    { "assert": "boardFullyVisible" },
+    {
+      "assert": "noVerticalClip",
+      "testId": ["hud", "board", "toolbar", "version"]
+    },
+    { "assert": "chromeAboveHomeBar", "testId": "toolbar", "sab": 34 }
+  ]
+}

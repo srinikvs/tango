@@ -17,7 +17,12 @@ npm run build
 npm run preview
 ```
 
-Production assets are built with base `/tango/` to match the Playadda path `https://tessera-veera.duckdns.org/tango/`.
+Production assets are built with base `/tango/` to match the Playadda paths:
+
+- playaddatest: `https://playaddatest.duckdns.org/tango/`
+- prod: `https://playadda.duckdns.org/tango/`
+
+See `TESTING.md` for JSON-driven unit / e2e / Pixel tests (`npm test`, `npm run test:e2e`).
 
 Serve the SPA so client paths do not 404:
 

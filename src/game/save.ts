@@ -1,6 +1,6 @@
 import type { Cell, Difficulty, Mode } from "./types";
 
-const KEY = "playadda-tango-v1";
+export const SAVE_KEY = "playadda-tango-v1";
 const SAVE_VERSION = 1;
 
 export type DailyProgress = {
@@ -44,7 +44,7 @@ function migrate(raw: SaveState): SaveState {
 
 export function loadSave(): SaveState {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return { ...defaults };
     const parsed = JSON.parse(raw) as SaveState;
     if (!parsed || typeof parsed !== "object") return { ...defaults };
@@ -56,7 +56,7 @@ export function loadSave(): SaveState {
 
 export function writeSave(state: SaveState) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...state, version: SAVE_VERSION }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, version: SAVE_VERSION }));
   } catch {
     /* private mode / quota */
   }
